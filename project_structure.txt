@@ -1,0 +1,13 @@
+rag_project/
+├── README.md
+├── .env
+├── requirements.txt
+├── main.py
+├── streamlit_app.py
+└── app/
+    ├── __init__.py
+    ├── embeddings.py
+    ├── vector_store.py
+    ├── groq_inference.py
+    ├── langchain_chain.py
+    └── rag.py
