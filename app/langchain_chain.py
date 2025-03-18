@@ -1,28 +1,21 @@
 # app/langchain_chain.py
-# This module creates a simple LangChain chain.
-# For demonstration, we use OpenAI's LLM (adjust as needed).
-# You can swap this with a chain that calls groq_infer if preferred.
+# Uses Groq AI for response generation instead of OpenAI.
 
-from langchain.llms import OpenAI
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+from app.groq_inference import groq_infer  # Import Groq AI Inference function
 
 def create_chain():
     """
-    Creates an LLM chain that uses a prompt template.
-    Here, OpenAI's LLM is used for text generation.
-    Ensure your environment is configured with the necessary API key.
+    Instead of OpenAI, we use Groq AI Inference for answering queries.
     """
-    llm = OpenAI(temperature=0.7)  # Set up your LLM; alternatively, integrate groq_infer
-    prompt_template = PromptTemplate(
-        input_variables=["context", "question"],
-        template="Given the context: {context}\nAnswer the question: {question}"
-    )
-    chain = LLMChain(llm=llm, prompt=prompt_template)
-    return chain
+    def run(prompt):
+        return groq_infer(prompt)
+
+    return run  # Return function reference instead of an LLMChain object
 
 def run_chain(chain, context: str, question: str) -> str:
     """
-    Run the chain with the provided context and question.
+    Run the RAG chain with the given context and question.
+    Uses Groq AI for inference.
     """
-    return chain.run({"context": context, "question": question})
+    prompt = f"Given the context: {context}\nAnswer the question: {question}"
+    return chain(prompt)  # Calls groq_infer()

@@ -1,59 +1,47 @@
 # app/rag.py
-# This is the main RAG module that ties together the vector store,
-# embeddings, LangChain chain, and Groq AI Inference.
+# Main RAG pipeline integrating vector storage, document retrieval, and response generation.
 
 from .vector_store import init_vector_store, add_documents, search_documents
 from .embeddings import get_embeddings
-from .langchain_chain import create_chain, run_chain
-from .groq_inference import groq_infer
+from .groq_inference import groq_infer  # Use Groq AI for response generation
 
-def setup_documents():
+def add_user_documents(docs):
     """
-    For demonstration purposes, add some sample documents to the vector store.
-    In a real project, you would pre-index your own documents.
+    Convert LangChain Document objects from user uploads into the format expected by the vector store
+    and add them.
     """
     collection = init_vector_store()
-    documents = [
-        {"id": "1", "text": "The capital of France is Paris.", "metadata": {"source": "wiki"}},
-        {"id": "2", "text": "Python is a programming language.", "metadata": {"source": "wiki"}},
-        {"id": "3", "text": "The sky is blue on a clear day.", "metadata": {"source": "observation"}},
-    ]
-    add_documents(collection, documents)
-    return collection
+    formatted_docs = []
+    for i, doc in enumerate(docs):
+        formatted_docs.append({
+            "id": f"user_{i}",
+            "text": doc.page_content,
+            "metadata": {"source": "upload"}
+        })
+    add_documents(collection, formatted_docs)
 
 def retrieve_context(collection, query: str):
     """
-    Retrieve context for a query by generating its embedding and searching the vector store.
+    Retrieve relevant documents for a query by generating its embedding and searching ChromaDB.
     """
     query_embedding = get_embeddings([query])[0]
     results = search_documents(collection, query_embedding)
-    # Assuming the results dict contains a key "documents" with the texts.
-    context = " ".join(results.get("documents", []))
-    return context
-
-def run_rag(query: str, use_groq: bool = False, groq_api_key: str = None) -> str:
-    """
-    End-to-end function to run the RAG pipeline:
-      1. Initialize vector store and index documents.
-      2. Retrieve context based on the query.
-      3. Generate an answer using either:
-         - A LangChain chain (default)
-         - Groq AI Inference if `use_groq` is True.
     
-    The Groq API key can be provided via the function parameter (overriding the .env setting).
+    # Extract retrieved document text
+    context = " ".join(results.get("documents", []))
+    return context if context.strip() else "No relevant context found."
+
+def run_rag(query: str, groq_api_key: str = None) -> str:
+    """
+    End-to-end RAG process:
+    1. Retrieve relevant document context from ChromaDB.
+    2. Use Groq AI to generate an answer based on retrieved context.
     """
     collection = init_vector_store()
-    # Setup documents if not already indexed; in production, index your documents once.
-    setup_documents()
     context = retrieve_context(collection, query)
-    if context.strip() == "":
-        context = "No relevant context found."
-    
-    if use_groq:
-        prompt = f"Context: {context}\nQuestion: {query}"
-        answer = groq_infer(prompt, api_key=groq_api_key)
-    else:
-        chain = create_chain()
-        answer = run_chain(chain, context, query)
+
+    # Use Groq AI for final response generation
+    prompt = f"Context: {context}\nQuestion: {query}"
+    answer = groq_infer(prompt, api_key=groq_api_key)
     
     return answer

@@ -5,3 +5,5 @@ transformers
 requests
 python-dotenv
 langchain-community
+docx2txt
+sentence-transformers
